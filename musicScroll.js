@@ -5,49 +5,42 @@ var fartscroll = (function () {
 
   return function (audiofile, trigger_distance) {
     trigger_distance = trigger_distance || 400;
-    var lastOffset, lastSource;
+    var lastOffset, currSource, lastContext, revBuffer, fwdBuffer;
     var fwdContext = new AudioContext(),
       revContext = new AudioContext(),
       request = new XMLHttpRequest();
     request.open('GET', 'http://localhost:8080/' + audiofile, true);
     // request.setRequestHeader('Access-Control-Allow-Origin', '*')
     request.responseType = 'arraybuffer';
-    var currSource, fwdSource, reverseSrc;
 
     request.addEventListener('load', async function () {
-      fwdSource = await decodeToSource(fwdContext, request.response.slice())
-      console.log(request)
-      reverseSrc = await decodeToSource(revContext, request.response)
-      reverseSrc.buffer.getChannelData(0).reverse();
-      reverseSrc.buffer.getChannelData(1).reverse();
-      // fwdContext.suspend();
-      // fwdSource.start();
-      // revContext.suspend();
-      // revSource.start();
+      var res = await decodeBuffers(revContext, fwdContext, request.response)
+      
+      revContext.buffer = res.reverse;
+      fwdContext.buffer = res.forward;
     });
     request.send();
 
     var setSpeed = function () {
-      if (fwdSource && reverseSrc && lastOffset !== window.pageYOffset) {
+      if (fwdContext.buffer && lastOffset !== window.pageYOffset) {
         // source.start()
-        console.log(fwdSource)
         var diff = window.pageYOffset - lastOffset;
-        var newSource = (diff > 0 ? fwdSource : reverseSrc)
-        if (newSource !== lastSource) {
-          if (lastSource) {
-            console.log('stopping', lastSource)
-            lastSource.stop();
+        var newContext = (diff > 0 ? fwdContext : revContext)
+        if (newContext !== lastContext) {
+          if (currSource) {
+            console.log('stopping', currSource)
+            currSource.stop();
           }
-          newSource.start()
-          lastSource = newSource
+          currSource = createSource(newContext, newContext.buffer);          
+          currSource.start()
+            console.log('starting', currSource)
+          lastContext = newContext;
         }
 
-
         const playSpeed = Math.max(1, window.scrollY % 5);
-        console.log('setting playback for', newSource, 'to', playSpeed, 'from', window.scrollY)
-        newSource.playbackRate.value = playSpeed;
+        console.log('setting playback for', newContext, 'to', playSpeed, 'from', window.scrollY)
+        currSource.playbackRate.value = playSpeed;
         lastOffset = window.pageYOffset;
-
       }
     };
 
@@ -67,54 +60,27 @@ var fartscroll = (function () {
     // window.addEventListener('resize', resizeFart, false);
   };
 
-  async function decodeToSource(context, response) {
-    console.log('decoding', response, 'with', context)
-    var source;
-    await context.decodeAudioData(response, function (buffer) {
-
-      source = context.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-      source.connect(context.destination);
-
+  async function decodeBuffers(revContext, fwdContext, response) {
+    console.log('decoding', response, 'with', revContext, fwdContext)
+    var res = {};
+    await fwdContext.decodeAudioData(response.slice(), function (buffer) {
+      res.forward = buffer;
     })
-    console.log('made source', source)
-    return source
+    await revContext.decodeAudioData(response, function (buffer) {
+      buffer.getChannelData(0).reverse();
+      buffer.getChannelData(1).reverse();
+      res.reverse = buffer;
+    })
+    console.log('made buffers', res)
+    return res
   }
 
-  function playAudio(position) {
-    var player = getPlayer(),
-      audio = getAudioFor(player),
-      rand = Math.floor(Math.random() * audio.sound.length);
-
-    player.src = audio.prefix + audio.sound[position || rand];
-    player.play();
-  };
-
-  function getPlayer() {
-    var container = getContainer(),
-      player, players = container.getElementsByTagName("audio");
-
-    for (player in players) {
-      if (player.currentTime === 0 || player.ended) {
-        return player;
-      }
-    }
-
-    player = document.createElement("audio");
-    container.appendChild(player);
-    return player;
-  };
-
-  function getContainer() {
-    var container = document.getElementById("fartscroll");
-
-    if (container === null) {
-      container = document.createElement("div");
-      container.id = "fartscroll";
-      document.getElementsByTagName('body')[0].appendChild(container);
-    }
-
-    return container;
+  function createSource(context, buffer) {
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.connect(context.destination);
+    return source;
   }
+
 })();
