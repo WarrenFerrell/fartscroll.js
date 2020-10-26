@@ -16,7 +16,7 @@ export default class TwoDirectionalAudioBuffer {
       fwdContext,
       revContext
     } = this;
-    console.log('decoding', buffer, 'with', fwdContext, revContext)
+    console.log('decoding', buffer)
     await fwdContext.decodeAudioData(buffer.slice(), function (audioBuffer) {
       fwdContext.buffer = audioBuffer;
     })
@@ -27,7 +27,8 @@ export default class TwoDirectionalAudioBuffer {
     })
     this.length = fwdContext.buffer.length;
     this.duration = fwdContext.buffer.duration;
-    console.log('made buffers', fwdContext.buffer, revContext.buffer)
+    this.lengthPerSec = this.length / this.duration;
+    console.log('loaded object', this)
     return
   }
 

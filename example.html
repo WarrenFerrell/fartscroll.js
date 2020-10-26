@@ -1,22 +1,58 @@
 <html>
-    <head>
-        <title>Testing musicScroll.js</title>
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-        <script type = "module" src="http://localhost:8080/DirectionLabel.js"></script>
-        <script type = "module" src="http://localhost:8080/TwoDirectionalAudioBuffer.js"></script>
-        <scrip type = "module" src="http://localhost:8080/musicScroll.js"></scrip>
-        <script type = "module">
-            import  musicScroll  from "http://localhost:8080/musicScroll.js";
-            $(document).ready(function() {
-               musicScroll('TwinkleTwinkle.mp3', document.getElementById("scrollDiv") );
-            });
+
+<head>
+    <title>musicScroll.js Testing</title>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script type="module" src="http://localhost:8080/DirectionLabel.js"></script>
+    <script type="module" src="http://localhost:8080/TwoDirectionalAudioBuffer.js"></script>
+    <scrip type="module" src="http://localhost:8080/musicScroll.js"></scrip>
+    <script type="module">
+        import musicScroll from "http://localhost:8080/musicScroll.js";
+        $(document).ready(function () {
+            musicScroll('TwinkleTwinkle.mp3', document.getElementById("scrollDiv"));
+        });
+    </script>
+    <input id="file" type="file" name="file" accept=".mp3" />
+</head>
+<style>
+    #scrollDiv {
+        width: 100px;
+        height: 100px;
+        background-color: coral;
+        color: white;
+    }
+
+    #fixed {
+        position: fixed;
+        top: 20px;
+        float: right;
+        right: 30px;
+    }
+</style>
+
+<body>
+    <div id="fixed">
+        0
+        <script>
+            var s = function () {
+                const ele = document.getElementById("fixed");
+                ele.innerHTML = window.scrollY;
+                // console.log('set', ele)
+            };
+            var r = function () {
+                var ele = document.getElementById("fixed")
+                // ele.style.right = window.innerWidth - 400;
+                ele.style.top = window.innerHeight / 2;
+                console.log('set', ele)
+            };
+            r();
+            window.addEventListener('scroll', s, false);
+            window.addEventListener('resize', r, false);
         </script>
-        <input id="file" type = "file" name="file" accept = ".mp3"/>
-    </head>
-    <body>
-        <div id = "scrollDiv">
-<!-- <div class="container"
+    </div>
+    <div id="scrollDiv"></div>
+    <!-- <div class="container"
   data-infinite-scroll='{ "path": ".pagination__next", "append": ".post", "history": false }'> -->
-        </div>
-    </body>
+</body>
+
 </html>
