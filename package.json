@@ -1,8 +1,8 @@
 {
-  "name": "musicscroll",
+  "name": "audio-scroll",
   "version": "1.0.0",
   "description": "scroll sound back and forth",
-  "main": "DirectionLabel.js",
+  "main": "src/index.js",
   "dependencies": {
     "jquery.scrollto": "^2.1.2"
   },
@@ -15,7 +15,7 @@
     "url": "git+https://github.com/WarrenFerrell/musicScroll.js.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/WarrenFerrell/musicScroll.js/issues"
   },
