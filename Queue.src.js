@@ -29,6 +29,11 @@ function Queue(){
   this.isEmpty = function(){
     return (queue.length == 0);
   }
+  
+    // Returns true if the queue is empty, and false otherwise.
+  this.hasNext = function(){
+    return (queue.length > offset);
+  }
 
   /* Enqueues the specified item. The parameter is:
    *
@@ -47,17 +52,27 @@ function Queue(){
     if (queue.length == 0) return undefined;
 
     // store the item at the front of the queue
-    var item = queue[offset];
+    var item = queue[offset++];
 
     // increment the offset and remove the free space if necessary
-    if (++ offset * 2 >= queue.length){
-      queue  = queue.slice(offset);
-      offset = 0;
+    if (offset * 2 >= queue.length){
+      // queue  = queue.slice(offset);
+      // offset = 0;
     }
 
     // return the dequeued item
     return item;
 
+  }
+
+  /*
+  * clears and returns all elements that were ever in the queue
+  */
+  this.clear = function() {
+    var old = queue;
+    queue = [];
+    offset = 0;
+    return old;
   }
 
   /* Returns the item at the front of the queue (without dequeuing it). If the

@@ -5,11 +5,15 @@
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script type="module" src="http://localhost:8080/DirectionLabel.js"></script>
     <script type="module" src="http://localhost:8080/TwoDirectionalAudioBuffer.js"></script>
-    <scrip type="module" src="http://localhost:8080/musicScroll.js"></scrip>
+    <script type="module" src="http://localhost:8080/Queue.src.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/jquery.scrollto@2.1.2/jquery.scrollTo.min.js"></script>
+    <script type="module" src="http://localhost:8080/musicScroll.js"></script>
     <script type="module">
-        import musicScroll from "http://localhost:8080/musicScroll.js";
+        import { MusicScroll } from "http://localhost:8080/musicScroll.js";
         $(document).ready(function () {
-            musicScroll('TwinkleTwinkle.mp3', document.getElementById("scrollDiv"));
+            const scroll = new MusicScroll('TwinkleTwinkle.mp3', document.getElementById("scrollDiv"));
+            scroll.autoScroll(1);
+
         });
     </script>
     <input id="file" type="file" name="file" accept=".mp3" />
@@ -33,6 +37,9 @@
 <body>
     <div id="fixed">
         0
+        
+        <!-- <button onclick="scrollWin(0, 50)">Scroll down</button><br><br> -->
+
         <script>
             var s = function () {
                 const ele = document.getElementById("fixed");

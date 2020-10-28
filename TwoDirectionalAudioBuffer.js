@@ -1,6 +1,7 @@
 "use strict";
 
 import DirectionLabel from "./DirectionLabel.js";
+import Queue from "./Queue.src.js";
 
 export default class TwoDirectionalAudioBuffer {
 
@@ -9,6 +10,7 @@ export default class TwoDirectionalAudioBuffer {
     this.fwdContext = new AudioContext();
     this.revContext = new AudioContext();
     this.currPos = 0;
+    this.q = Queue();
   };
 
   async loadAsync(buffer) {
@@ -28,41 +30,64 @@ export default class TwoDirectionalAudioBuffer {
     this.length = fwdContext.buffer.length;
     this.duration = fwdContext.buffer.duration;
     this.lengthPerSec = this.length / this.duration;
-    console.log('loaded object', this)
+    // console.log('loaded object', this)
     return
   }
 
   getContext(label) {
-    return DirectionLabel.runOp(label, () => this.fwdContext, this.revContext);
+    return DirectionLabel.match(label, () => this.fwdContext, this.revContext);
   }
 
-  createSource(context, buffer) {
+  getPlayingSegment() {
+    const { context } = this.currContext
+    while(this.q.hasNext()) {
+      var item = this.q.peek();
+      if (item.end < context.currentTime) {
+        return item;
+      }
+      this.q.dequeue();
+    }
+  }
+
+  queueSegment(start, end, speed) {
+    const { context } = this.currContext
     const source = context.createBufferSource();
     source.buffer = buffer;
+    speed = Math.abs(speed);
     source.connect(context.destination);
+    const duration = Math.abs(end - start);
+    const realDuration = duration / speed;
+    var currItem = getPlayingItem();
+    const when = currItem?.end ?? context.currentTime;
+    const item = {
+      source = source,
+      when = when,
+      offset = start,
+      realDuration = realDuration,
+      end = when + realDuration,
+    }
+    source.playbackRate.value = speed;
+    source.start(item.when, item.offset, item.duration);
+    this.q.enqueue(item)
     return source;
   }
 
-  swapSource(label) {
-    const swapCurr = function (currSource, newContext) {}
+  setLabel(label) {
     if (label === this.currLabel) return false;
     this.currLabel = label;
     const newContext = this.getContext(DirectionLabel.getOther(label));
     this.currContext = newContext;
-    var currSource = this.currSource;
-    if (currSource) {
-      console.log('stopping', currSource, 'for window', window)
-      currSource.stop();
-    }
+    var oldSources = this.q.clear();
 
-    currSource = this.createSource(newContext, newContext.buffer);
-    currSource.start();
-    console.log('starting', currSource);
+    oldSources.forEach(item => {item.source.stop());
+  }
 
-    this.currSource = currSource;
+  getOrCreateSource(){
 
   }
 
-
+match(fwdFunc, revFunc) {
+  return DirectionLabel.match(this.currLabel, fwdFunc, revFunc);
+}
 
 }
