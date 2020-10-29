@@ -1,7 +1,7 @@
+// TwoDirectionalAudioBuffer.js
 "use strict";
 
 import DirectionLabel from "./DirectionLabel.js";
-import Queue from "./Queue.src.js";
 
 export default class TwoDirectionalAudioBuffer {
 
@@ -9,8 +9,7 @@ export default class TwoDirectionalAudioBuffer {
   constructor() {
     this.fwdContext = new AudioContext();
     this.revContext = new AudioContext();
-    this.currPos = 0;
-    this.q = Queue();
+    this.currSegments = [];
   };
 
   async loadAsync(buffer) {
@@ -28,8 +27,8 @@ export default class TwoDirectionalAudioBuffer {
       revContext.buffer = audioBuffer;
     })
     this.length = fwdContext.buffer.length;
-    this.duration = fwdContext.buffer.duration;
-    this.lengthPerSec = this.length / this.duration;
+    this.audioLength = fwdContext.buffer.duration;
+    this.lengthPerSec = this.length / this.audioLength;
     // console.log('loaded object', this)
     return
   }
@@ -38,52 +37,68 @@ export default class TwoDirectionalAudioBuffer {
     return DirectionLabel.match(label, () => this.fwdContext, this.revContext);
   }
 
-  getPlayingSegment() {
-    const { context } = this.currContext
-    while(this.q.hasNext()) {
-      var item = this.q.peek();
-      if (item.end < context.currentTime) {
-        return item;
-      }
-      this.q.dequeue();
-    }
+  getLastSegment() {
+    if (this.currSegments.length == 0) return;
+
+    return this.currSegments[this.currSegments.length - 1];
   }
 
-  queueSegment(start, end, speed) {
-    const { context } = this.currContext
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    speed = Math.abs(speed);
-    source.connect(context.destination);
-    const duration = Math.abs(end - start);
-    const realDuration = duration / speed;
-    var currItem = getPlayingItem();
-    const when = currItem?.end ?? context.currentTime;
+  queueSegment(start, end, duration) {
+    this.setLabelBySegment(start, end);
+    const [srcStart, srcEnd ] = this.match(
+      [ start, end ],
+      () => [ this.getReversePos(start), this.getReversePos(end) ]
+    )
+
+    const legnth = srcEnd - srcStart;
+    const speed = legnth / duration;
+    var currItem = this.getLastSegment();
+    const when = currItem?.stop ?? this.currContext.currentTime;
+    const source = this.createSource();
     const item = {
-      source = source,
-      when = when,
-      offset = start,
-      realDuration = realDuration,
-      end = when + realDuration,
+
+      start: start,
+      end: end,
+      when: when,
+      stop: when + duration,
+      srcStart: srcStart,
+      srcEnd: srcEnd,
+      duration: duration,
+      speed: speed,
+      source: source,
     }
+    console.log('queueing', item)
     source.playbackRate.value = speed;
-    source.start(item.when, item.offset, item.duration);
-    this.q.enqueue(item)
+    source.start(when, srcStart, duration);
+    this.currSegments.push(item)
     return source;
   }
 
-  setLabel(label) {
-    if (label === this.currLabel) return false;
-    this.currLabel = label;
-    const newContext = this.getContext(DirectionLabel.getOther(label));
-    this.currContext = newContext;
-    var oldSources = this.q.clear();
-
-    oldSources.forEach(item => {item.source.stop());
+  getReversePos(pos){
+    return this.audioLength - pos;
   }
 
-  getOrCreateSource(){
+  setLabelBySegment(start, end) {
+    return this.setLabelBySpeed(end - start);
+  }
 
+  setLabelBySpeed(speed) {
+    var label = speed > 0 ? DirectionLabel.fwd : DirectionLabel.rev;
+    if (label === this.currLabel) return false;
+    this.currLabel = label;
+    const newContext = this.getContext(label);
+    this.currContext = newContext;
+    var oldSources = this.currSegments;
+    this.currSegments = [];
+    oldSources.forEach(item => item.source.stop());
+  }
+
+  createSource(){
+    const context  = this.currContext
+    const source = context.createBufferSource();
+    source.connect(context.destination);
+    source.buffer = context.buffer;
+    return source;
   }
 
 match(fwdFunc, revFunc) {

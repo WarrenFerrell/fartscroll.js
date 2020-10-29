@@ -1,5 +1,7 @@
 "use strict";
 
+function nsEval(v) {if (v instanceof Function) { return v() } else { return v } };
+
 export default class DirectionLabel {
 	static fwd = 'fwd';
 	static rev = 'rev';
@@ -19,6 +21,5 @@ export default class DirectionLabel {
 		return this.match(label, () => this.rev, () => this.fwd)
 	}
 	
-	nsEval(v) {if (v instanceof Function) { return v() } else { return v } };
 
 }

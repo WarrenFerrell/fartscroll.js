@@ -1,4 +1,4 @@
-// musicScroll.js v0.1
+// scrollElement.js v0.1
 "use strict";
 
 import TwoDirectionalAudioBuffer from "./TwoDirectionalAudioBuffer.js";
@@ -7,88 +7,105 @@ import DirectionLabel from "./DirectionLabel.js";
 // import DirectionLabel from "./DirectionLabel"
 import scrollTo from "jquery.scrollto";
 
-export default class AudioScroll {
-  constructor(audiofile, element, resize = true, pixelsPerSecond = 100) {
-    this.resize = true;
-    this.pixelsPerSecond = resize ? pixelsPerSecond : undefined; 
+export default class ScrollElement {
+  constructor(element, resize = true, pixelsPerSecond = 100) {
+    this.resize = resize;
+    this.element = element;
+    this.pixelsPerSecond = resize ? pixelsPerSecond : undefined;
     this.pixelStart = element.offsetTop;
-    var lastOffset,
-      currSource;
-    this.songPosition = 0;
-    var buffer = new TwoDirectionalAudioBuffer(),
-      request = new XMLHttpRequest();
-    request.open("GET", "http://localhost:8080/" + audiofile, true);
-    // request.setRequestHeader('Access-Control-Allow-Origin', '*')
-    request.responseType = "arraybuffer";
-this.buffer = buffer;
+    this.lastOffset = window.scrollY;
+    this.lastPos = 0;
+    this.buffer = new TwoDirectionalAudioBuffer();
+    console.log(this);
 
-    request.addEventListener("load", async function () {
-      await buffer.loadAsync(request.response);
-      if (resize) {
-        this.elementSize = durationToPixels(buffer.duration) + window.innerHeight;
-        element.style.height = this.elementSize + "px";
-      } else {
-        this.elementSize = element.scrollHeight;
-        this.pixelsPerSecond =  this.elementSize / buffer.duration; 
-      }
-      this.pixelStop = this.pixelStart + this.elementSize;
-      console.log("Loaded", this)
+
+    window.addEventListener("scroll", this.playSegment.bind(this), false);
+  }
+
+  playSegment() {
+    const { buffer, lastPos  } = this
+    if (buffer.audioLength) {
+      const start = lastPos;
+      const end = this.getRelativePos(window.scrollY);
+      buffer.queueSegment(start, end, 1);
+      this.lastPos = end;
+    }
+  }
+
+  async loadBufferAsync(audiofile) {
+    // from https://stackoverflow.com/questions/48969495/in-javascript-how-do-i-should-i-use-async-await-with-xmlhttprequest
+    const scrollElement = this;
+    const { buffer } = this;
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", "http://localhost:8080/" + audiofile, true);
+      xhr.responseType = "arraybuffer";
+      xhr.onload = async function () {
+        var status = xhr.status;
+        if (status != 200) {
+          reject(status);
+        }
+        console.log("Loading", scrollElement);
+        await buffer.loadAsync(xhr.response);
+        scrollElement.setElementProps()
+        console.log("Loaded", scrollElement);
+        resolve(buffer);
+      };
+
+      xhr.send();
     });
-    request.send();
-
-    var playSegment = function () {
-      if (buffer.length && lastOffset !== window.scrollY) {
-        
-        var diff = window.scrollY - lastOffset;
-        var newLabel = diff > 0 ? DirectionLabel.fwd : DirectionLabel.rev;
-        buffer.setLabel(newLabel);
-        console.log("setting playback for", currSource, "to", playSpeed, "from", window.scrollY);
-        currSource.playbackRate.value = playSpeed;
-        lastOffset = window.pageYOffset;
-      }
-    };
-
-    window.addEventListener("scroll", playSegment, false);
   }
 
-  loadAsync(audiofile) {
-
+  setElementProps() {
+    const { buffer, resize, element } = this;
+    if (resize) {
+      this.elementSize =
+        this.durationToPixels(buffer.audioLength) + window.innerHeight;
+      element.style.height = this.elementSize + "px";
+    } else {
+      this.elementSize = element.scrollHeight;
+      this.pixelsPerSecond =
+        this.elementSize / buffer.audioLength;
+    }
+    this.pixelStop =
+      this.pixelStart + this.elementSize;
   }
 
-  pixelsToDuration(pixels){
+  pixelsToDuration(pixels) {
     return pixels / this.pixelsPerSecond;
   }
 
-  durationToPixels(duration){
+  durationToPixels(duration) {
     return Math.ceil(duration * this.pixelsPerSecond);
   }
 
-  playSegment(start, stop) {
-    var diff = stop - start;
-    this.setLabel(diff);
-    currSource.start();
-  }
+getRelativePos(scrollY) {
+  return this.pixelsToDuration(this.getRelativeScroll(scrollY));
+}
 
-  setLabel(speed) {
-    var newLabel = speed > 0 ? DirectionLabel.fwd : DirectionLabel.rev;
-    this.buffer.setLabel(newLabel);
-    return newLabel;
-  }
+getRelativeScroll(scrollY) {
+  return scrollY + this.pixelStart;
+}
 
   autoScroll(speed) {
-    const { duration, match, songPosition } = this.buffer;
-    this.speed = speed;
-    this.setLabel(speed);
-    const target = match("max", "0");
-    const remainingDuration = match(() => duration - songPosition, () => songPosition)
+    const { buffer } = this;
+    if (!buffer) throw "load file first.";
+    const currPos = this.getRelativePos(window.scrollY);
+    const { audioLength } = buffer;
+    buffer.setLabelBySpeed(speed);
+    const target = buffer.match("max", "0");
+    const remainingDuration = buffer.match(
+      () => audioLength - currPos,
+      () => currPos
+    );
     scrollTo(target, {
-      duration: remainingDuration
-    })
+      duration: remainingDuration,
+    });
   }
 
   getCurrentSongPosition() {
-    const scrollY = window.scrollY
-    const asd = window.scrollY - this.pixelStart
-      return pixelsToDuration()
+    const scrollY = window.scrollY;
+    const asd = window.scrollY - this.pixelStart;
+    return pixelsToDuration();
   }
 }

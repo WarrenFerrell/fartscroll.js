@@ -1,6 +1,6 @@
-'use strict'; 
+//index.js
 
-import ScrollElement from 'src/ScrollElement'
+import ScrollElement from './src/ScrollElement.js'
 
 
 export { ScrollElement }
