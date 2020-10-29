@@ -14,7 +14,6 @@ export default class ScrollElement {
     this.element = element;
     this.pixelsPerSecond = resize ? pixelsPerSecond : undefined;
     this.pixelStart = element.offsetTop;
-    this.lastOffset = window.scrollY;
     this.lastPos = 0;
     this.buffer = new TwoDirectionalAudioBuffer();
     console.log(this);
@@ -24,15 +23,15 @@ export default class ScrollElement {
 
   playSegment() {
     if (!this.buffer.audioLength) throw "load file first.";
-    const { buffer, lastPos, autoScrolling } = this;
+    const { buffer, lastPos: start, autoScrolling } = this;
+    const end = this.getRelativePos(window.scrollY);
+    this.lastPos = end;
+
     if (autoScrolling) {
         return
     }
     else {
-      const start = lastPos;
-      const end = this.getRelativePos(window.scrollY);
       buffer.queueSegment(start, end, 1);
-      this.lastPos = end;
     }
   }
 
@@ -91,10 +90,10 @@ export default class ScrollElement {
 
   stopAutoScroll() {
     if (!this.buffer.audioLength) throw "load file first.";
+    console.log("stopping autoscroll", this);
     this.autoScrolling = false;
     this.buffer.clearLabel();
     this.scroll?.stop();
-    console.log("stopping autoscroll");
   }
 
   autoScroll(speed) {
@@ -109,20 +108,22 @@ export default class ScrollElement {
     this.autoScrolling = true;
     const target = buffer.match("max", "0");
     const remainingDuration = buffer.match(
-      () => audioLength - currPos,
-      () => currPos
+      () => (audioLength - currPos) / speed,
+      () => (currPos / speed) * -1
     );
     buffer.queueSegment(
       currPos,
       buffer.match(audioLength, 0),
       remainingDuration
     );
+    const stop = this.stopAutoScroll.bind(this)
     this.scroll = scrollTo(target, {
       duration: remainingDuration * 1000,
       interrupt: true,
-      onAfter: this.stopAutoScroll.bind(this),
+      onAfter: stop,
+      fail: stop,
     });
-    console.log("autoscrolling for", remainingDuration, "to", target);
+    console.log("autoscrolling for", remainingDuration, "to", target, 'at', speed, this);
   }
 
   getSongProgress() {
