@@ -85,9 +85,13 @@ export default class TwoDirectionalAudioBuffer {
   setLabelBySpeed(speed) {
     var label = speed > 0 ? DirectionLabel.fwd : DirectionLabel.rev;
     if (label === this.currLabel) return false;
+    this.clearLabel();
     this.currLabel = label;
-    const newContext = this.getContext(label);
-    this.currContext = newContext;
+    this.currContext = this.getContext(label);
+  }
+
+  clearLabel() {
+    this.currLabel = null;
     var oldSources = this.currSegments;
     this.currSegments = [];
     oldSources.forEach(item => item.source.stop());

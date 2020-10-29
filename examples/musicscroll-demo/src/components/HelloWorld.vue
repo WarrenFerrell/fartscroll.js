@@ -1,20 +1,25 @@
 <template>
   <div id="hello">
     <div id="fixed">0</div>
+    <b-button id="autoscrollBtn"  :pressed.sync="myToggle" variant="success" click>Autoscroll</b-button>
 
     <div id="scrollDiv" />
   </div>
 </template>
 
 <script>
+
 import { ScrollElement } from "../../../../index.js";
 
 export default {
   name: "HelloWorld",
   async mounted() {
+    const scroll = new ScrollElement(
+      document.getElementById("scrollDiv")
+    );
     var s = function () {
       const ele = document.getElementById("fixed");
-      ele.innerHTML = window.scrollY;
+      ele.innerHTML = `${window.scrollY} ${Math.round(scroll.getSongProgress() * 100)}%`;
       // console.log('set', ele)
     };
     var resize = function () {
@@ -27,16 +32,23 @@ export default {
     window.addEventListener("scroll", s, false);
     window.addEventListener("resize", resize, false);
 
-    const scroll = new ScrollElement(
-      document.getElementById("scrollDiv")
-    );
-    await scroll.loadBufferAsync("TwinkleTwinkle.mp3");
 
-    // scroll.autoScroll(1);
+    await scroll.loadBufferAsync("marimba.mp3");
+    var autoscrollBtn = document.getElementById("autoscrollBtn");
+    autoscrollBtn.addEventListener("click", function() {
+      if (this.getAttribute("aria-pressed") === "false") scroll.stopAutoScroll();
+      else scroll.autoScroll(1);
+    })
+    this.scroll = scroll;
   },
-  created() {
-
+  data() {
+    return {
+      myToggle: false,
+    } 
     }
+
+    
+
 };
 </script>
     
@@ -47,6 +59,12 @@ export default {
   height: 100px;
   background-color: coral;
   color: white;
+}
+#autoscrollBtn {
+  position: fixed;
+  top: 40px;
+  float: right;
+  right: 30px;
 }
 
 #fixed {

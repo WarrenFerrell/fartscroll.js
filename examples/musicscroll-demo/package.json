@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "audio-scroll": "file:../..",
+    "bootstrap-vue": "^2.18.1",
     "core-js": "^3.6.5",
-    "vue": "^2.6.11",
-    "jquery.scrollto": "^2.1.2"
+    "jquery.scrollto": "^2.1.2",
+    "vue": "^2.6.11"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",

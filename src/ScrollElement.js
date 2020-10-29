@@ -6,6 +6,7 @@ import DirectionLabel from "./DirectionLabel.js";
 // import TwoDirectionalAudioBuffer from './TwoDirectionalAudioBuffer'
 // import DirectionLabel from "./DirectionLabel"
 import scrollTo from "jquery.scrollto";
+import { scrollStop } from "jquery.scrollto";
 
 export default class ScrollElement {
   constructor(element, resize = true, pixelsPerSecond = 100) {
@@ -18,13 +19,16 @@ export default class ScrollElement {
     this.buffer = new TwoDirectionalAudioBuffer();
     console.log(this);
 
-
     window.addEventListener("scroll", this.playSegment.bind(this), false);
   }
 
   playSegment() {
-    const { buffer, lastPos  } = this
-    if (buffer.audioLength) {
+    if (!this.buffer.audioLength) throw "load file first.";
+    const { buffer, lastPos, autoScrolling } = this;
+    if (autoScrolling) {
+        return
+    }
+    else {
       const start = lastPos;
       const end = this.getRelativePos(window.scrollY);
       buffer.queueSegment(start, end, 1);
@@ -47,7 +51,7 @@ export default class ScrollElement {
         }
         console.log("Loading", scrollElement);
         await buffer.loadAsync(xhr.response);
-        scrollElement.setElementProps()
+        scrollElement.setElementProps();
         console.log("Loaded", scrollElement);
         resolve(buffer);
       };
@@ -64,11 +68,9 @@ export default class ScrollElement {
       element.style.height = this.elementSize + "px";
     } else {
       this.elementSize = element.scrollHeight;
-      this.pixelsPerSecond =
-        this.elementSize / buffer.audioLength;
+      this.pixelsPerSecond = this.elementSize / buffer.audioLength;
     }
-    this.pixelStop =
-      this.pixelStart + this.elementSize;
+    this.pixelStop = this.pixelStart + this.elementSize;
   }
 
   pixelsToDuration(pixels) {
@@ -79,33 +81,51 @@ export default class ScrollElement {
     return Math.ceil(duration * this.pixelsPerSecond);
   }
 
-getRelativePos(scrollY) {
-  return this.pixelsToDuration(this.getRelativeScroll(scrollY));
-}
+  getRelativePos(scrollY) {
+    return this.pixelsToDuration(this.getRelativeScroll(scrollY));
+  }
 
-getRelativeScroll(scrollY) {
-  return scrollY + this.pixelStart;
-}
+  getRelativeScroll(scrollY) {
+    return scrollY + this.pixelStart;
+  }
+
+  stopAutoScroll() {
+    if (!this.buffer.audioLength) throw "load file first.";
+    this.autoScrolling = false;
+    this.buffer.clearLabel();
+    this.scroll?.stop();
+    console.log("stopping autoscroll");
+  }
 
   autoScroll(speed) {
+    if (!this.buffer.audioLength) throw "load file first.";
     const { buffer } = this;
-    if (!buffer) throw "load file first.";
+    if (this.autoScrolling) {
+      buffer.clearLabel();
+    }
     const currPos = this.getRelativePos(window.scrollY);
     const { audioLength } = buffer;
     buffer.setLabelBySpeed(speed);
+    this.autoScrolling = true;
     const target = buffer.match("max", "0");
     const remainingDuration = buffer.match(
       () => audioLength - currPos,
       () => currPos
     );
-    scrollTo(target, {
-      duration: remainingDuration,
+    buffer.queueSegment(
+      currPos,
+      buffer.match(audioLength, 0),
+      remainingDuration
+    );
+    this.scroll = scrollTo(target, {
+      duration: remainingDuration * 1000,
+      interrupt: true,
+      onAfter: this.stopAutoScroll.bind(this),
     });
+    console.log("autoscrolling for", remainingDuration, "to", target);
   }
 
-  getCurrentSongPosition() {
-    const scrollY = window.scrollY;
-    const asd = window.scrollY - this.pixelStart;
-    return pixelsToDuration();
+  getSongProgress() {
+    return this.getRelativePos(window.scrollY) / this.buffer.audioLength;
   }
 }
