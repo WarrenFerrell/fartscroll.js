@@ -40,11 +40,11 @@ export default class ScrollElement {
     const scrollElement = this;
     const { buffer } = this;
     return new Promise(function (resolve, reject) {
-      var xhr = new XMLHttpRequest();
+      let xhr = new XMLHttpRequest();
       xhr.open("GET", "http://localhost:8080/" + audiofile, true);
       xhr.responseType = "arraybuffer";
       xhr.onload = async function () {
-        var status = xhr.status;
+        let status = xhr.status;
         if (status != 200) {
           reject(status);
         }

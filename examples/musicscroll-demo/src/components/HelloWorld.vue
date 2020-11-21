@@ -35,7 +35,7 @@ export default {
       // console.log('set', ele)
     };
     var resize = function () {
-      var ele = document.getElementById("fixed");
+      const ele = document.getElementById("fixed");
       // ele.style.right = window.innerWidth - 400;
       ele.style.top = window.innerHeight / 2;
       console.log("set", ele);

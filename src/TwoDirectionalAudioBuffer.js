@@ -52,30 +52,29 @@ export default class TwoDirectionalAudioBuffer {
 
     const legnth = srcEnd - srcStart;
     const speed = legnth / duration;
-    var currItem = this.getLastSegment();
+    let currItem = this.getLastSegment();
     const when = currItem?.stop ?? this.currContext.currentTime;
     const source = this.createSource();
     const item = {
-
       start: start,
       end: end,
+      duration: duration + 0.5,
+      speed: speed,
       when: when,
       stop: when + duration,
       srcStart: srcStart,
       srcEnd: srcEnd,
-      duration: duration,
-      speed: speed,
       source: source,
     }
     console.log('queueing', item)
     source.playbackRate.value = speed;
-    source.start(when, srcStart, duration);
+    source.start(when, srcStart, item.duration);
     this.currSegments.push(item)
     return source;
   }
 
   getReversePos(pos){
-    return this.audioLength - pos;
+    return Math.max(this.audioLength - pos, 0);
   }
 
   setLabelBySegment(start, end) {
@@ -83,7 +82,7 @@ export default class TwoDirectionalAudioBuffer {
   }
 
   setLabelBySpeed(speed) {
-    var label = speed > 0 ? DirectionLabel.fwd : DirectionLabel.rev;
+    let label = speed > 0 ? DirectionLabel.fwd : DirectionLabel.rev;
     if (label === this.currLabel) return false;
     this.clearLabel();
     this.currLabel = label;
@@ -92,7 +91,7 @@ export default class TwoDirectionalAudioBuffer {
 
   clearLabel() {
     this.currLabel = null;
-    var oldSources = this.currSegments;
+    let oldSources = this.currSegments;
     this.currSegments = [];
     oldSources.forEach(item => item.source.stop());
   }
